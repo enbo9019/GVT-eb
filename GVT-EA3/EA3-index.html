@@ -1,0 +1,843 @@
+<!DOCTYPE html>
+<html lang="de">
+
+<head>
+    <meta charset="UTF-8">
+    <title>EA3 – Farbig gefüllte 2D Geometrie</title>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #eeeeee;
+            text-align: center;
+        }
+
+        canvas {
+            display: block;
+            margin: 20px auto;
+            border: 1px solid #888888;
+        }
+    </style>
+</head>
+
+<body>
+
+<h1>EA3 – Farbig gefüllte 2D Geometrie</h1>
+<h2>Gaming Controller</h2>
+
+<canvas id="canvas" width="900" height="600"></canvas>
+
+<h3>Interaktion</h3>
+<p>Keine Interaktion erforderlich.</p>
+
+<h3>Beschreibung</h3>
+<p>
+    Dargestellt wird ein stilisierter Gaming-Controller als selbst erstellte
+    farbig gefüllte 2D-Geometrie mit WebGL.
+    Die Geometrie besteht ausschließlich aus Dreiecken.
+</p>
+
+<h3>Hinweise</h3>
+<p>
+    Die Farbwerte werden den Vertices als Attribute übergeben.
+    Zwischen unterschiedlich gefärbten Vertices entstehen Farbverläufe
+    durch die Interpolation der Rendering-Pipeline.
+</p>
+
+<h3>Quellen</h3>
+<p>
+    Eigener Entwurf, orientiert am grundsätzlichen Aufbau moderner Gaming-Controller.
+</p>
+
+<script>
+
+// START EA3_WEBGL_GRUNDGERUEST
+
+var canvas = document.getElementById("canvas");
+var gl =
+    canvas.getContext("webgl") ||
+    canvas.getContext("experimental-webgl");
+
+if (!gl) {
+    alert("WebGL konnte nicht initialisiert werden.");
+}
+
+gl.viewport(0, 0, canvas.width, canvas.height);
+
+gl.clearColor(0.03, 0.03, 0.03, 1.0);
+
+// END EA3_WEBGL_GRUNDGERUEST
+
+
+// START EA3_SHADER_FARBE
+
+var vsSource =
+    "attribute vec2 pos;" +
+    "attribute vec4 col;" +
+    "varying vec4 color;" +
+
+    "void main() {" +
+    "    gl_Position = vec4(" +
+    "        pos.x * 0.09," +
+    "        pos.y * 0.14," +
+    "        0.0," +
+    "        1.0" +
+    "    );" +
+
+    "    color = col;" +
+    "}";
+
+
+var fsSource =
+    "precision mediump float;" +
+    "varying vec4 color;" +
+
+    "void main() {" +
+    "    gl_FragColor = color;" +
+    "}";
+
+
+var vs = gl.createShader(gl.VERTEX_SHADER);
+gl.shaderSource(vs, vsSource);
+gl.compileShader(vs);
+
+if (!gl.getShaderParameter(vs, gl.COMPILE_STATUS)) {
+    console.error(
+        "Vertex-Shader Fehler: " +
+        gl.getShaderInfoLog(vs)
+    );
+}
+
+
+var fs = gl.createShader(gl.FRAGMENT_SHADER);
+gl.shaderSource(fs, fsSource);
+gl.compileShader(fs);
+
+if (!gl.getShaderParameter(fs, gl.COMPILE_STATUS)) {
+    console.error(
+        "Fragment-Shader Fehler: " +
+        gl.getShaderInfoLog(fs)
+    );
+}
+
+
+var prog = gl.createProgram();
+
+gl.attachShader(prog, vs);
+gl.attachShader(prog, fs);
+
+gl.linkProgram(prog);
+
+if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) {
+    console.error(
+        "Shader-Programm konnte nicht gelinkt werden: " +
+        gl.getProgramInfoLog(prog)
+    );
+}
+
+gl.useProgram(prog);
+
+
+var posAttrib =
+    gl.getAttribLocation(prog, "pos");
+
+var colorAttrib =
+    gl.getAttribLocation(prog, "col");
+
+// END EA3_SHADER_FARBE
+
+
+
+// START EA3_GEOMETRIE_DREIECKE
+
+/*
+    Alle Bestandteile des Controllers werden in diesen
+    drei Arrays zusammengefasst.
+
+    vertices:
+    x/y Positionen
+
+    colors:
+    RGBA-Farben
+
+    indices:
+    Dreiecke
+*/
+
+var vertices = [];
+var colors = [];
+var indices = [];
+
+
+// Hilfsfunktion zum Hinzufügen einer Geometrie.
+function addShape(points, pointColors, shapeIndices) {
+
+    var baseIndex = vertices.length / 2;
+
+    for (var i = 0; i < points.length; i++) {
+
+        vertices.push(
+            points[i][0],
+            points[i][1]
+        );
+
+        colors.push(
+            pointColors[i][0],
+            pointColors[i][1],
+            pointColors[i][2],
+            pointColors[i][3]
+        );
+    }
+
+    for (var j = 0; j < shapeIndices.length; j++) {
+        indices.push(
+            baseIndex + shapeIndices[j]
+        );
+    }
+}
+
+
+// Hilfsfunktion für eine Fläche mit Mittelpunkt.
+function addFan(center, ring, centerColor, ringColor) {
+
+    var points = [center];
+    var pointColors = [centerColor];
+
+    for (var i = 0; i < ring.length; i++) {
+
+        points.push(ring[i]);
+
+        if (Array.isArray(ringColor[0])) {
+            pointColors.push(ringColor[i]);
+        } else {
+            pointColors.push(ringColor);
+        }
+    }
+
+    var fanIndices = [];
+
+    for (var j = 0; j < ring.length; j++) {
+
+        fanIndices.push(
+            0,
+            j + 1,
+            ((j + 1) % ring.length) + 1
+        );
+    }
+
+    addShape(
+        points,
+        pointColors,
+        fanIndices
+    );
+}
+
+
+// Hilfsfunktion für Vierecke.
+function addQuad(p0, p1, p2, p3, c0, c1, c2, c3) {
+
+    addShape(
+        [p0, p1, p2, p3],
+        [c0, c1, c2, c3],
+        [
+            0, 1, 2,
+            0, 2, 3
+        ]
+    );
+}
+
+
+// --------------------------------------------------
+// Controller Grundkörper
+// --------------------------------------------------
+
+var bodyPoints = [
+
+    [-5.0,  5.0],
+    [-6.8,  4.7],
+    [-8.0,  3.5],
+    [-8.8,  1.8],
+    [-8.6, -0.5],
+    [-8.0, -3.0],
+    [-7.2, -5.2],
+    [-6.0, -5.8],
+    [-5.0, -5.6],
+    [-4.2, -3.8],
+    [-3.2, -2.0],
+
+    [ 3.2, -2.0],
+    [ 4.2, -3.8],
+    [ 5.0, -5.6],
+    [ 6.0, -5.8],
+    [ 7.2, -5.2],
+    [ 8.0, -3.0],
+    [ 8.6, -0.5],
+    [ 8.8,  1.8],
+    [ 8.0,  3.5],
+    [ 6.8,  4.7],
+    [ 5.0,  5.0]
+
+];
+
+
+var bodyColors = [];
+
+for (var i = 0; i < bodyPoints.length; i++) {
+
+    var t =
+        (bodyPoints[i][1] + 5.8) / 10.8;
+
+    bodyColors.push([
+        0.08 + 0.10 * t,
+        0.10 + 0.18 * t,
+        0.18 + 0.30 * t,
+        1.0
+    ]);
+}
+
+
+/*
+    Triangulierung der Außenkontur.
+    Die Indices beziehen sich auf bodyPoints.
+*/
+
+var bodyIndices = [
+
+     2,  3, 10,
+     2, 10,  0,
+     2,  0,  1,
+
+     0, 10, 21,
+    21, 10, 11,
+
+    21, 11, 19,
+    21, 19, 20,
+
+    19, 11, 18,
+    18, 11, 17,
+
+    15, 16, 12,
+    15, 12, 14,
+    14, 12, 13,
+
+     7,  8,  9,
+     7,  9,  6,
+     6,  9,  5,
+
+     5,  9, 10,
+     5, 10,  4,
+     4, 10,  3,
+
+    11, 12, 16,
+    11, 16, 17
+
+];
+
+addShape(
+    bodyPoints,
+    bodyColors,
+    bodyIndices
+);
+
+
+
+// --------------------------------------------------
+// D-Pad
+// --------------------------------------------------
+
+var dpadDark =
+    [0.08, 0.09, 0.13, 1.0];
+
+var dpadLight =
+    [0.20, 0.28, 0.48, 1.0];
+
+
+// Horizontal.
+addQuad(
+
+    [-7.4, 2.6],
+    [-4.6, 2.6],
+    [-4.6, 1.4],
+    [-7.4, 1.4],
+
+    dpadLight,
+    dpadLight,
+    dpadDark,
+    dpadDark
+);
+
+
+// Vertikal.
+addQuad(
+
+    [-6.6, 3.4],
+    [-5.4, 3.4],
+    [-5.4, 0.6],
+    [-6.6, 0.6],
+
+    dpadLight,
+    dpadLight,
+    dpadDark,
+    dpadDark
+);
+
+
+
+// --------------------------------------------------
+// Aktionstasten
+// --------------------------------------------------
+
+var buttonCenter =
+    [0.10, 0.10, 0.14, 1.0];
+
+
+// Oberer Button.
+addFan(
+
+    [6.0, 2.9],
+
+    [
+        [5.7, 3.4],
+        [6.3, 3.4],
+        [6.6, 3.1],
+        [6.6, 2.7],
+        [6.3, 2.4],
+        [5.7, 2.4],
+        [5.4, 2.7],
+        [5.4, 3.1]
+    ],
+
+    buttonCenter,
+
+    [0.95, 0.75, 0.15, 1.0]
+);
+
+
+// Rechter Button.
+addFan(
+
+    [7.4, 1.9],
+
+    [
+        [7.1, 2.4],
+        [7.7, 2.4],
+        [8.0, 2.1],
+        [8.0, 1.7],
+        [7.7, 1.4],
+        [7.1, 1.4],
+        [6.8, 1.7],
+        [6.8, 2.1]
+    ],
+
+    buttonCenter,
+
+    [0.90, 0.20, 0.20, 1.0]
+);
+
+
+// Unterer Button.
+addFan(
+
+    [6.0, 0.9],
+
+    [
+        [5.7, 1.4],
+        [6.3, 1.4],
+        [6.6, 1.1],
+        [6.6, 0.7],
+        [6.3, 0.4],
+        [5.7, 0.4],
+        [5.4, 0.7],
+        [5.4, 1.1]
+    ],
+
+    buttonCenter,
+
+    [0.20, 0.75, 0.35, 1.0]
+);
+
+
+// Linker Button.
+addFan(
+
+    [4.6, 1.9],
+
+    [
+        [4.3, 2.4],
+        [4.9, 2.4],
+        [5.2, 2.1],
+        [5.2, 1.7],
+        [4.9, 1.4],
+        [4.3, 1.4],
+        [4.0, 1.7],
+        [4.0, 2.1]
+    ],
+
+    buttonCenter,
+
+    [0.20, 0.45, 0.95, 1.0]
+);
+
+
+
+// --------------------------------------------------
+// Analogsticks
+// --------------------------------------------------
+
+var stickCenter =
+    [0.04, 0.05, 0.08, 1.0];
+
+var stickOuter =
+    [0.18, 0.30, 0.48, 1.0];
+
+
+// Linker Stick.
+addFan(
+
+    [-3.0, -0.2],
+
+    [
+        [-4.1,  0.3],
+        [-3.4,  1.0],
+        [-2.6,  1.0],
+        [-1.9,  0.3],
+        [-1.9, -0.7],
+        [-2.6, -1.4],
+        [-3.4, -1.4],
+        [-4.1, -0.7]
+    ],
+
+    stickCenter,
+    stickOuter
+);
+
+
+// Rechter Stick.
+addFan(
+
+    [3.0, -0.2],
+
+    [
+        [1.9,  0.3],
+        [2.6,  1.0],
+        [3.4,  1.0],
+        [4.1,  0.3],
+        [4.1, -0.7],
+        [3.4, -1.4],
+        [2.6, -1.4],
+        [1.9, -0.7]
+    ],
+
+    stickCenter,
+    stickOuter
+);
+
+
+
+// --------------------------------------------------
+// Touchpad
+// --------------------------------------------------
+
+var touchpadTop =
+    [0.12, 0.55, 1.00, 1.0];
+
+var touchpadBottom =
+    [0.02, 0.15, 0.52, 1.0];
+
+
+addQuad(
+
+    [-3.3, 4.8],
+    [ 3.3, 4.8],
+    [ 2.9, 2.6],
+    [-2.9, 2.6],
+
+    touchpadTop,
+    touchpadTop,
+    touchpadBottom,
+    touchpadBottom
+);
+
+
+
+// --------------------------------------------------
+// Kleine Mittelbuttons
+// --------------------------------------------------
+
+var smallButtonCenter =
+    [0.06, 0.07, 0.10, 1.0];
+
+var smallButtonOuter =
+    [0.35, 0.42, 0.55, 1.0];
+
+
+// Links.
+addFan(
+
+    [-1.8, 1.7],
+
+    [
+        [-2.1, 2.0],
+        [-1.5, 2.0],
+        [-1.3, 1.7],
+        [-1.5, 1.4],
+        [-2.1, 1.4],
+        [-2.3, 1.7]
+    ],
+
+    smallButtonCenter,
+    smallButtonOuter
+);
+
+
+// Rechts.
+addFan(
+
+    [1.8, 1.7],
+
+    [
+        [1.5, 2.0],
+        [2.1, 2.0],
+        [2.3, 1.7],
+        [2.1, 1.4],
+        [1.5, 1.4],
+        [1.3, 1.7]
+    ],
+
+    smallButtonCenter,
+    smallButtonOuter
+);
+
+
+
+// --------------------------------------------------
+// Home-Button
+// --------------------------------------------------
+
+addFan(
+
+    [0.0, 0.8],
+
+    [
+        [-0.5, 1.2],
+        [ 0.5, 1.2],
+        [ 0.8, 0.8],
+        [ 0.5, 0.4],
+        [-0.5, 0.4],
+        [-0.8, 0.8]
+    ],
+
+    [0.10, 0.30, 0.65, 1.0],
+
+    [0.15, 0.70, 1.00, 1.0]
+);
+
+
+
+// --------------------------------------------------
+// Feindetails
+// Die ehemaligen Linien werden als dünne Vierecke
+// aus jeweils zwei Dreiecken dargestellt.
+// --------------------------------------------------
+
+var detailTop =
+    [0.40, 0.65, 1.00, 1.0];
+
+var detailBottom =
+    [0.10, 0.25, 0.50, 1.0];
+
+
+addQuad(
+
+    [-0.60,  0.04],
+    [ 0.60,  0.04],
+    [ 0.60, -0.04],
+    [-0.60, -0.04],
+
+    detailTop,
+    detailTop,
+    detailBottom,
+    detailBottom
+);
+
+
+addQuad(
+
+    [-0.50, -0.26],
+    [ 0.50, -0.26],
+    [ 0.50, -0.34],
+    [-0.50, -0.34],
+
+    detailTop,
+    detailTop,
+    detailBottom,
+    detailBottom
+);
+
+
+addQuad(
+
+    [-0.40, -0.56],
+    [ 0.40, -0.56],
+    [ 0.40, -0.64],
+    [-0.40, -0.64],
+
+    detailTop,
+    detailTop,
+    detailBottom,
+    detailBottom
+);
+
+
+// END EA3_GEOMETRIE_DREIECKE
+
+
+
+// START EA3_BUFFER
+
+var vertexData =
+    new Float32Array(vertices);
+
+var colorData =
+    new Float32Array(colors);
+
+var indexData =
+    new Uint16Array(indices);
+
+
+// Vertex-Buffer.
+var vertexBuffer =
+    gl.createBuffer();
+
+gl.bindBuffer(
+    gl.ARRAY_BUFFER,
+    vertexBuffer
+);
+
+gl.bufferData(
+    gl.ARRAY_BUFFER,
+    vertexData,
+    gl.STATIC_DRAW
+);
+
+
+// Color-Buffer.
+var colorBuffer =
+    gl.createBuffer();
+
+gl.bindBuffer(
+    gl.ARRAY_BUFFER,
+    colorBuffer
+);
+
+gl.bufferData(
+    gl.ARRAY_BUFFER,
+    colorData,
+    gl.STATIC_DRAW
+);
+
+
+// Index-Buffer.
+var indexBuffer =
+    gl.createBuffer();
+
+gl.bindBuffer(
+    gl.ELEMENT_ARRAY_BUFFER,
+    indexBuffer
+);
+
+gl.bufferData(
+    gl.ELEMENT_ARRAY_BUFFER,
+    indexData,
+    gl.STATIC_DRAW
+);
+
+// END EA3_BUFFER
+
+
+
+// START EA3_RENDERING
+
+gl.clear(
+    gl.COLOR_BUFFER_BIT
+);
+
+
+// Positionen.
+gl.bindBuffer(
+    gl.ARRAY_BUFFER,
+    vertexBuffer
+);
+
+gl.vertexAttribPointer(
+    posAttrib,
+    2,
+    gl.FLOAT,
+    false,
+    0,
+    0
+);
+
+gl.enableVertexAttribArray(
+    posAttrib
+);
+
+
+// Farben.
+gl.bindBuffer(
+    gl.ARRAY_BUFFER,
+    colorBuffer
+);
+
+gl.vertexAttribPointer(
+    colorAttrib,
+    4,
+    gl.FLOAT,
+    false,
+    0,
+    0
+);
+
+gl.enableVertexAttribArray(
+    colorAttrib
+);
+
+
+// Indices.
+gl.bindBuffer(
+    gl.ELEMENT_ARRAY_BUFFER,
+    indexBuffer
+);
+
+
+// Alle Geometrien als Dreiecke zeichnen.
+gl.drawElements(
+    gl.TRIANGLES,
+    indexData.length,
+    gl.UNSIGNED_SHORT,
+    0
+);
+
+// END EA3_RENDERING
+
+
+console.log(
+    "Anzahl Vertices:",
+    vertexData.length / 2
+);
+
+console.log(
+    "Anzahl Indices:",
+    indexData.length
+);
+
+console.log(
+    "Anzahl Dreiecke:",
+    indexData.length / 3
+);
+
+</script>
+
+</body>
+
+</html>
