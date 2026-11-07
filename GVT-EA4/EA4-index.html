@@ -1,0 +1,390 @@
+
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>GVT - EA4: Parametrisierte Flächen</title>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f6f8;
+            color: #222;
+            margin: 0;
+            padding: 25px 15px;
+            text-align: center;
+        }
+
+        h1 {
+            margin-top: 0;
+        }
+
+        h2 {
+            margin-top: 25px;
+        }
+
+        canvas {
+            width: 100%;
+            max-width: 550px;
+            height: auto;
+            background-color: #101827;
+            border-radius: 8px;
+            display: block;
+            margin: 20px auto;
+        }
+
+        .controls {
+            margin: 20px auto;
+        }
+
+        button {
+            padding: 11px 18px;
+            margin: 5px;
+            font-size: 15px;
+            color: white;
+            background-color: #2563eb;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #1d4ed8;
+        }
+
+        button:focus-visible {
+            outline: 3px solid #f59e0b;
+            outline-offset: 3px;
+        }
+
+        .status {
+            margin: 15px 0 25px;
+            color: #555;
+        }
+
+        .info {
+            max-width: 750px;
+            margin: 25px auto;
+            padding: 25px;
+            background-color: white;
+            border-radius: 10px;
+            text-align: left;
+            line-height: 1.7;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+        }
+
+        .info h2 {
+            margin-top: 0;
+            border-bottom: 1px solid #ddd;
+            padding-bottom: 10px;
+        }
+
+        .surface-info {
+            padding: 15px 0;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .surface-info:last-child {
+            border-bottom: none;
+        }
+
+        .formula {
+            background-color: #f1f5f9;
+            border-left: 4px solid #2563eb;
+            border-radius: 4px;
+            padding: 15px;
+            margin: 12px 0;
+            overflow-x: auto;
+            font-family: Consolas, monospace;
+            font-size: 14px;
+            line-height: 1.9;
+            white-space: pre-wrap;
+            overflow-wrap: anywhere;
+        }
+
+        a {
+            color: #2563eb;
+        }
+
+        .footer {
+            margin-top: 30px;
+            color: #666;
+            font-size: 13px;
+        }
+    </style>
+
+    <script src="EA4-script.js" defer></script>
+</head>
+
+<body>
+
+    <h1>EA4 - Parametrisierte Flächen</h1>
+
+    <p>
+        Graphical Visualisation Technologies (GVT)
+    </p>
+
+    <!-- START EA4_VISUALISIERUNG -->
+
+    <h2 id="surfaceTitle">
+        1. Helikoid (Wendelfläche)
+    </h2>
+
+    <canvas
+        id="glCanvas"
+        width="550"
+        height="550">
+        Dein Browser unterstützt kein HTML-Canvas.
+    </canvas>
+
+    <!-- END EA4_VISUALISIERUNG -->
+
+
+    <!-- START EA4_BEDIENUNG -->
+
+    <div class="controls">
+        <button id="switchSurface" type="button">
+            Fläche wechseln (B)
+        </button>
+
+        <button id="toggleView" type="button">
+            Nur Linien anzeigen (L)
+        </button>
+    </div>
+
+    <p id="status" class="status">
+        Die Fläche wird geladen ...
+    </p>
+
+    <section class="info">
+        <h2>Bedienung</h2>
+
+        <p>
+            Die Anwendung zeigt drei unterschiedliche
+            parametrisierte 3D-Flächen.
+            Alle Flächen werden algorithmisch mit
+            JavaScript und WebGL erzeugt.
+        </p>
+
+        <ul>
+            <li>
+                <strong>Taste B:</strong>
+                Zwischen den drei Flächen wechseln.
+            </li>
+
+            <li>
+                <strong>Taste L:</strong>
+                Zwischen dem reinen Liniengitter
+                und der farbigen Fläche mit Linien
+                wechseln.
+            </li>
+        </ul>
+
+        <p>
+            Alternativ können die beiden Buttons
+            oberhalb verwendet werden.
+        </p>
+    </section>
+
+    <!-- END EA4_BEDIENUNG -->
+
+
+    <!-- START EA4_DOKUMENTATION -->
+
+    <section class="info">
+
+        <h2>Dokumentation der Flächen</h2>
+
+        <!-- Helikoid -->
+
+        <div class="surface-info">
+            <h3>1. Helikoid (Wendelfläche)</h3>
+
+            <p>
+                Das Helikoid ist eine spiralförmige
+                Fläche, die sich um eine zentrale
+                Achse windet.
+            </p>
+
+            <p><strong>Parametrisierung:</strong></p>
+
+            <div class="formula">x(r,t) = r * cos(t)
+y(r,t) = 0.18 * t
+z(r,t) = r * sin(t)</div>
+
+            <p>
+                <strong>Parameterbereiche:</strong><br>
+                -0.7 &le; r &le; 0.7<br>
+                -&pi; &le; t &le; &pi;
+            </p>
+
+            <p>
+                <strong>Kolorierung:</strong>
+                Blau-türkiser Farbverlauf
+                mit hellem Liniengitter.
+            </p>
+
+            <p>
+                <strong>Quelle:</strong>
+                <a href="https://www.3d-meier.de/tut3/Seite0.html"
+                   target="_blank"
+                   rel="noopener noreferrer">
+                    3D-Meier - Helicoid (3.20)
+                </a>
+            </p>
+        </div>
+
+
+        <!-- Möbiusband -->
+
+        <div class="surface-info">
+            <h3>2. Möbiusband</h3>
+
+            <p>
+                Das Möbiusband ist ein ringförmiges
+                Band mit einer halben Verdrehung.
+                Es besitzt nur eine zusammenhängende
+                Seite.
+            </p>
+
+            <p><strong>Parametrisierung:</strong></p>
+
+            <div class="formula">R(u,v) = 0.6 + v * cos(u/2)
+
+x(u,v) = R(u,v) * cos(u)
+y(u,v) = R(u,v) * sin(u)
+z(u,v) = v * sin(u/2)</div>
+
+            <p>
+                <strong>Parameterbereiche:</strong><br>
+                0 &le; u &le; 2&pi;<br>
+                -0.22 &le; v &le; 0.22
+            </p>
+
+            <p>
+                <strong>Kolorierung:</strong>
+                Violett-rosa Farbverlauf
+                mit hellem Liniengitter.
+            </p>
+
+            <p>
+                <strong>Quelle:</strong>
+                <a href="https://www.3d-meier.de/tut3/Seite0.html"
+                   target="_blank"
+                   rel="noopener noreferrer">
+                    3D-Meier - Möbius Band (3.9)
+                </a>
+            </p>
+        </div>
+
+
+        <!-- Eigene Parametrisierung -->
+
+        <div class="surface-info">
+            <h3>3. Wellenblüte (Eigenkreation)</h3>
+
+            <p>
+                Die Wellenblüte ist eine selbst
+                entwickelte parametrisierte Fläche.
+                Sie kombiniert eine radiale Wölbung
+                mit sieben periodischen Wellen,
+                wodurch eine blütenartige
+                3D-Struktur entsteht.
+            </p>
+
+            <p><strong>Eigene Parametrisierung:</strong></p>
+
+            <div class="formula">R(r,t) = 0.64*r*(1 + 0.22*r*cos(7*t))
+
+x(r,t) = R(r,t)*cos(t + 0.3*r)
+
+y(r,t) = 0.36*(1 - r*r)
+       + 0.18*r*r*cos(7*t + 0.3*r)
+       - 0.14
+
+z(r,t) = R(r,t)*sin(t + 0.3*r)</div>
+
+            <p>
+                <strong>Parameterbereiche:</strong><br>
+                0 &le; r &le; 1<br>
+                0 &le; t &le; 2&pi;
+            </p>
+
+            <p>
+                <strong>Kolorierung:</strong>
+                Radialer Farbverlauf von
+                Goldgelb über Orange bis Pink
+                mit dunklem Liniengitter.
+            </p>
+
+            <p>
+                <strong>Quelle:</strong>
+                Eigene mathematische Parametrisierung,
+                entwickelt durch Kombination
+                trigonometrischer Funktionen
+                und radialer Terme.
+            </p>
+        </div>
+
+    </section>
+
+    <!-- END EA4_DOKUMENTATION -->
+
+
+    <!-- START EA4_QUELLEN -->
+
+    <section class="info">
+        <h2>Quellen und technische Umsetzung</h2>
+
+        <p>
+            <strong>GVT-Skript:</strong><br>
+            Graphical Visualisation Technologies,
+            Lerneinheit 8 - Kurven und Flächen (KUF).
+        </p>
+
+        <p>
+            <strong>Mathematische Formelsammlung:</strong><br>
+            <a href="https://www.3d-meier.de/tut3/Seite0.html"
+               target="_blank"
+               rel="noopener noreferrer">
+                3D-Meier - Parametrische Flächen und Körper
+            </a>
+        </p>
+
+        <p>
+            <strong>Technologien:</strong><br>
+            HTML5, CSS, JavaScript und WebGL.
+        </p>
+
+        <p>
+            <strong>Umsetzung:</strong><br>
+            Die Geometrien werden durch zwei
+            verschachtelte Schleifen erzeugt.
+            Die berechneten Vertices werden über
+            Index-Buffer zu Liniensegmenten und
+            Dreiecken verbunden.
+            Die Darstellung und Kolorierung
+            erfolgen mit WebGL-Shadern.
+        </p>
+
+        <p>
+            Die Flächen sind auf den sichtbaren
+            Koordinatenbereich skaliert.
+            Für die Darstellung wird eine feste
+            Drehung verwendet.
+        </p>
+    </section>
+
+    <!-- END EA4_QUELLEN -->
+
+    <footer class="footer">
+        <p>
+            GVT - Einsendeaufgabe 4:
+            Parametrisierte Flächen
+        </p>
+    </footer>
+
+</body>
+</html>
