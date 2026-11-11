@@ -1,0 +1,355 @@
+
+<!DOCTYPE html>
+<html lang="de">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GVT - EA5 - Kamerabewegung</title>
+
+    <!-- START EA5 - Seitengestaltung -->
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f3f5f9;
+            color: #202936;
+            margin: 0;
+            padding: 24px;
+        }
+
+        main {
+            max-width: 950px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 25px;
+        }
+
+        h1 {
+            margin-bottom: 8px;
+        }
+
+        header p {
+            color: #5b6474;
+        }
+
+        canvas {
+            display: block;
+            width: 100%;
+            height: auto;
+            background-color: #101524;
+            border: 1px solid #27354b;
+            border-radius: 10px;
+        }
+
+        #cameraStatus {
+            text-align: center;
+            margin: 15px 0 25px;
+            font-size: 14px;
+            color: #48566a;
+        }
+
+        .panel {
+            background-color: white;
+            padding: 22px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+        }
+
+        .panel h2 {
+            font-size: 19px;
+            margin-top: 0;
+        }
+
+        .sphere-controls {
+            text-align: center;
+        }
+
+        .depth-controls {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 18px;
+            margin: 18px 0;
+        }
+
+        button {
+            padding: 8px 15px;
+            font-size: 18px;
+            border: none;
+            border-radius: 6px;
+            background-color: #263b61;
+            color: white;
+            cursor: pointer;
+        }
+
+        button:hover:not(:disabled) {
+            background-color: #385b93;
+        }
+
+        button:disabled {
+            background-color: #b8bec8;
+            cursor: not-allowed;
+        }
+
+        button:focus-visible,
+        input:focus-visible,
+        a:focus-visible {
+            outline: 3px solid #479cff;
+            outline-offset: 3px;
+        }
+
+        #recursionInfo {
+            min-width: 200px;
+            font-weight: bold;
+        }
+
+        .wireframe-control {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+        }
+
+        .controls ul {
+            padding-left: 25px;
+            line-height: 1.9;
+        }
+
+        .description {
+            line-height: 1.7;
+        }
+
+        .sources {
+            line-height: 1.8;
+        }
+
+        .sources a {
+            color: #245b9d;
+            overflow-wrap: anywhere;
+        }
+
+        .hint {
+            font-size: 13px;
+            color: #667085;
+        }
+    </style>
+    <!-- END EA5 - Seitengestaltung -->
+</head>
+
+<body>
+    <main>
+
+        <header>
+            <h1>GVT - Einsendeaufgabe 5</h1>
+            <h2>Kamerabewegung und rekursive Kugel</h2>
+            <p>Interaktive 3D-Szene mit WebGL</p>
+        </header>
+
+        <!-- START EA5 - WebGL-Zeichenfläche -->
+        <canvas id="glCanvas" width="900" height="550">
+            Dein Browser unterstützt kein HTML-Canvas.
+        </canvas>
+
+        <p id="cameraStatus" aria-live="polite">
+            Kamerawerte werden geladen ...
+        </p>
+        <!-- END EA5 - WebGL-Zeichenfläche -->
+
+
+        <!-- START EA5 - Rekursive Kugel Bedienung -->
+        <section class="panel sphere-controls">
+            <h2>Rekursive Kugel</h2>
+
+            <p>
+                Verändere die Rekursionstiefe, um die
+                Dreiecksunterteilung der Kugel zu untersuchen.
+            </p>
+
+            <div class="depth-controls">
+                <button id="decreaseDepth"
+                        type="button"
+                        aria-label="Rekursionstiefe verringern">
+                    −
+                </button>
+
+                <span id="recursionInfo" aria-live="polite">
+                    Tiefe: 2 | Dreiecke: 128
+                </span>
+
+                <button id="increaseDepth"
+                        type="button"
+                        aria-label="Rekursionstiefe erhöhen">
+                    +
+                </button>
+            </div>
+
+            <label class="wireframe-control">
+                <input type="checkbox"
+                       id="showWireframe"
+                       checked>
+                Dreiecksnetz anzeigen
+            </label>
+
+            <p class="hint">
+                Rekursionstiefe 0 bis 5.
+                Ausgangsmodell: Oktaeder mit 8 Dreiecken.
+            </p>
+        </section>
+        <!-- END EA5 - Rekursive Kugel Bedienung -->
+
+
+        <!-- START EA5 - Bedienungshinweise -->
+        <section class="panel controls">
+            <h2>Steuerung</h2>
+
+            <ul>
+                <li>
+                    <strong>Pfeil links / rechts:</strong>
+                    Kamera um die Szene drehen
+                </li>
+                <li>
+                    <strong>Pfeil hoch / runter:</strong>
+                    Kamerahöhe verändern
+                </li>
+                <li>
+                    <strong>N:</strong>
+                    Kameraradius verkleinern
+                </li>
+                <li>
+                    <strong>Shift + N:</strong>
+                    Kameraradius vergrößern
+                </li>
+                <li>
+                    <strong>Plus-Button (+):</strong>
+                    Rekursionstiefe erhöhen
+                </li>
+                <li>
+                    <strong>Minus-Button (−):</strong>
+                    Rekursionstiefe verringern
+                </li>
+                <li>
+                    <strong>Checkbox:</strong>
+                    Dreiecksnetz ein- oder ausblenden
+                </li>
+            </ul>
+        </section>
+        <!-- END EA5 - Bedienungshinweise -->
+
+
+        <!-- START EA5 - Dokumentation -->
+        <section class="panel description">
+            <h2>Beschreibung der Anwendung</h2>
+
+            <p>
+                Die Szene besteht aus einem Kegel, einem Torus
+                und einer rekursiv erzeugten Kugel.
+                Alle drei Objekte werden mit WebGL dargestellt.
+            </p>
+
+            
+<p>
+    Die Kamera bewegt sich auf einer Kreisbahn um die
+    Y-Achse. Die horizontale Kameraposition wird mithilfe
+    von Sinus und Kosinus berechnet. Über die Pfeiltasten
+    kann die Kamera horizontal um die Szene gedreht
+    sowie ihre Höhe unabhängig vom Kameraradius
+    verändert werden.
+</p>
+
+<p>
+    Die Kamerahöhe ist im Bereich von -30 bis +30
+    einstellbar. Über die Tasten N und Shift + N
+    lässt sich der horizontale Kameraradius verändern.
+    Die View-Transformation erfolgt mithilfe der
+    Funktion mat4.lookAt().
+</p>
+
+<p>
+    Damit die Objekte auch bei großen Kamerahöhen
+    gut erkennbar bleiben, wird der Öffnungswinkel
+    der perspektivischen Kamera automatisch an
+    die Entfernung zum Szenenzentrum angepasst.
+    Dadurch bleibt die Darstellungsgröße der Objekte
+    bei einer Höhenänderung annähernd konstant.
+</p>
+
+
+            <p>
+                Die rekursive Kugel basiert auf einem Oktaeder
+                mit acht Dreiecksflächen. Bei jedem
+                Rekursionsschritt wird jedes Dreieck in vier
+                kleinere Dreiecke unterteilt. Die neu
+                berechneten Mittelpunkte werden auf die
+                Kugeloberfläche normiert.
+            </p>
+
+            <p>
+                Die Anzahl der Dreiecke ergibt sich aus:
+                <strong>T(n) = 8 · 4<sup>n</sup></strong>,
+                wobei n die Rekursionstiefe bezeichnet.
+            </p>
+
+            <p>
+                Die Geometrien werden algorithmisch in
+                JavaScript erzeugt. Es werden keine externen
+                Bilder oder fertigen 3D-Modelle verwendet.
+            </p>
+        </section>
+        <!-- END EA5 - Dokumentation -->
+
+
+        <!-- START EA5 - Quellenangaben -->
+        <section class="panel sources">
+            <h2>Quellen</h2>
+
+            <ul>
+                <li>
+                    Modulskript:
+                    <a href="https://vfhgvt.eduloop.de/"
+                       target="_blank"
+                       rel="noopener noreferrer">
+                        GVT - Graphical Visualisation Technologies
+                    </a>
+                    <ul>
+                        <li>GRU - Grundkörper, insbesondere 9.11</li>
+                        <li>KAP - Kamera und Perspektive,
+                            insbesondere 10.14 bis 10.16</li>
+                    </ul>
+                </li>
+
+                <li>
+                    <a href="https://glmatrix.net/"
+                       target="_blank"
+                       rel="noopener noreferrer">
+                        glMatrix
+                    </a>
+                    - JavaScript-Matrixbibliothek,
+                    Version 2.8.1
+                </li>
+            </ul>
+
+            <p class="hint">
+                Umsetzung der Szene und Geometrien in
+                JavaScript und WebGL. Die mathematischen
+                Grundlagen orientieren sich am Modulskript.
+            </p>
+        </section>
+        <!-- END EA5 - Quellenangaben -->
+
+    </main>
+
+    <!-- START EA5 - JavaScript-Bibliotheken -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gl-matrix/2.8.1/gl-matrix-min.js"></script>
+    <script src="EA5-app.js"></script>
+    <!-- END EA5 - JavaScript-Bibliotheken -->
+
+</body>
+</html>
